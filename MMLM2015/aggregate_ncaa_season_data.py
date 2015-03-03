@@ -1,31 +1,31 @@
-__author__ = 'Steve'
+__author__ = 'spszabad'
+
 import numpy as np
 import matplotlib.pylab as pl
 
-class point_matrix:
+class RankByPoints:
     def __init__(self, season_data, teams):
         self.team_vect = []
         self.team_rank = []
         # find all teams
-        for game in season_data.games:
+        for team in season_data.wteam:
             # does the winning team not exist?
-            if game.w_team not in self.team_vect:
-                self.team_vect.append(game.w_team)
-
+            if team not in self.team_vect:
+                self.team_vect.append(team)
+        for team in season_data.lteam:
             # does the losing team not exist?
-            if game.l_team not in self.team_vect:
-                self.team_vect.append(game.l_team)
-
+            if team not in self.team_vect:
+                self.team_vect.append(team)
 
         # create point mtx
         self.point_mtx = np.zeros((len(self.team_vect), len(self.team_vect)))
         self.numb_games = np.zeros(len(self.team_vect))
         self.numb_wins = np.zeros(len(self.team_vect))
         self.numb_loss = np.zeros(len(self.team_vect))
-        for game in season_data.games:
+        for row in season_data.iterrows():
             # get idx's
-            w_idx = self.team_vect.index(game.w_team)
-            l_idx = self.team_vect.index(game.l_team)
+            w_idx = self.team_vect.index(row[1].wteam)
+            l_idx = self.team_vect.index(row[1].lteam)
 
             # add game to count
             self.numb_games[w_idx] += 1
@@ -34,8 +34,8 @@ class point_matrix:
             self.numb_loss[l_idx] += 1
 
             # add points to mtx
-            self.point_mtx[w_idx, l_idx] += float(game.w_pts)/(float(game.w_pts + game.l_pts))
-            self.point_mtx[l_idx, w_idx] += float(game.l_pts)/float((game.w_pts + game.l_pts))
+            self.point_mtx[w_idx, l_idx] += float(row[1].wscore)/(float(row[1].wscore + row[1].lscore))
+            self.point_mtx[l_idx, w_idx] += float(row[1].lscore)/float((row[1].wscore + row[1].lscore))
 
         # remove teams
         # for idx in point_mtx_scale.transpose().sum(axis=1) == 0:
@@ -48,10 +48,11 @@ class point_matrix:
         V = np.linalg.eig(point_mtx_scale)[1]
 
         team_rank = abs(np.asarray(V[:, 0].real).transpose())
+        self.pts_mtx_score = team_rank
         # team_rank = team_rank[0,:]
         sort_idx = team_rank.argsort()
         sort_idx = sort_idx[::-1]
-        #self.team_rank = self.team_vect[sort_idx]
+        # self.team_rank = self.team_vect[sort_idx]
 
         for idx in sort_idx:
             self.team_rank.append(self.team_vect[idx])
@@ -61,9 +62,3 @@ class point_matrix:
 
         # pl.plot(team_rank)
         # pl.show()
-
-
-
-
-
-
