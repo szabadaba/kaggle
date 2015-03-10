@@ -1,7 +1,7 @@
 __author__ = 'Steven Szabados'
 
-from joblib import Parallel, delayed
-import multiprocessing
+# from joblib import Parallel, delayed
+# import multiprocessing
 import pandas as ps
 import numpy as np
 from math import sqrt
@@ -15,9 +15,13 @@ class CreateNCAATrainingSet:
         # load seson data
         data = ps.io.parsers.read_csv(season_detail_filename)
         self.game_stats = []
+        self.training_set = []
+        self.formatted_data = []
+        self.truth_label = []
 
         # break up data into seasons
         s_data = []
+        # for season in [2014]:
         for season in data.season.unique():
             s_data.append(data[data.season == season])
 
@@ -25,26 +29,43 @@ class CreateNCAATrainingSet:
             self.game_stats.append(CreatePreGameStats())
             print season.irow(0).season
             for game in season.iterrows():
-                self.game_stats[-1].add_game(game[1], season)
+                self.game_stats[-1].add_game(game[1], season, self.training_set)
 
-            s_win_prob = np.asarray(self.game_stats[-1].w_team_prob)
+        self.aggregate_training_set()
+
+            # s_win_prob = np.asarray(self.game_stats[-1].w_team_prob)
             # s_win_prob2 = np.asarray(self.game_stats[-1].w_team_prob2)
-            print float(sum(s_win_prob > 1.0))/len(s_win_prob)
+            # print float(sum(s_win_prob > 1.0))/len(s_win_prob)
             # print float(sum(s_win_prob2 > 1.0))/len(s_win_prob2)
 
         # for game in s_data[0].iterrows():
         #     self.game_stats.add_game(game[1], s_data[0])
 
+    def aggregate_training_set(self):
+
+        for te in self.training_set:
+            self.formatted_data.append([te.w_team_pts_rank/te.l_team_pts_rank,
+                                        te.w_fgp/te.l_fgp,
+                                        te.w_ftp/te.l_ftp,
+                                        te.w_orpg/te.l_orpg,
+                                        te.w_drpg/te.l_drpg])
+            self.truth_label.append(1)
+            self.formatted_data.append([te.l_team_pts_rank/te.w_team_pts_rank,
+                                        te.l_fgp/te.w_fgp,
+                                        te.l_ftp/te.w_ftp,
+                                        te.l_orpg/te.w_orpg,
+                                        te.l_drpg/te.w_drpg])
+            self.truth_label.append(0)
+
+
 
 class CreatePreGameStats:
     def __init__(self):
-        self.MIN_DAYS = 30
+        self.MIN_DAYS = 50
         self.pts_rank_results = []
         self.ptr_rank_daynum = []
-        self.w_team_prob = []
-        # self.w_team_prob2 = []
 
-    def add_game(self, game, season):
+    def add_game(self, game, season, training_set):
 
         # create first game day
         daynum1 = min(season.daynum)
@@ -66,25 +87,47 @@ class CreatePreGameStats:
                 pts_rank = self.pts_rank_results[self.ptr_rank_daynum.index(game.daynum)]
                 # did we get a ranking for both teams:
                 if game.wteam in pts_rank.teams and game.lteam in pts_rank.teams:
+                    # set pts rank
                     w_team_rank = pts_rank.team_rank[pts_rank.teams.index(game.wteam)]
                     l_team_rank = pts_rank.team_rank[pts_rank.teams.index(game.lteam)]
-                    # print float(w_team_rank/l_team_rank)
-                    self.w_team_prob.append(float(w_team_rank/l_team_rank))
 
-                    # w_team_w_perc = float(sum(eval_games.wteam == game.wteam))/float((sum(eval_games.wteam == game.wteam) + sum(eval_games.lteam == game.wteam)))
-                    # l_team_w_perc = float(sum(eval_games.wteam == game.lteam))/float((sum(eval_games.wteam == game.lteam) + sum(eval_games.lteam == game.lteam)))
-                    # self.w_team_prob2.append(float((w_team_w_perc + 0.5)/(l_team_w_perc + 0.5)))
+                    # create training instance
+                    training_set.append(NCAAGameTrainingInstance(w_team_rank,
+                                                                 l_team_rank,
+                                                                 CreatePreGameStats.get_field_goal_percent(eval_games, game.wteam),
+                                                                 CreatePreGameStats.get_field_goal_percent(eval_games, game.lteam),
+                                                                 CreatePreGameStats.get_free_throw_percent(eval_games, game.wteam),
+                                                                 CreatePreGameStats.get_free_throw_percent(eval_games, game.lteam),
+                                                                 CreatePreGameStats.get_orpg(eval_games, game.wteam),
+                                                                 CreatePreGameStats.get_orpg(eval_games, game.lteam),
+                                                                 CreatePreGameStats.get_drpg(eval_games, game.wteam),
+                                                                 CreatePreGameStats.get_drpg(eval_games, game.lteam)))
 
+                    # print len(training_set)
 
+    @staticmethod
+    def get_field_goal_percent(eval_games, team):
+        fga = sum(eval_games[eval_games.wteam == team].wfga) + sum(eval_games[eval_games.lteam == team].lfga)
+        fgm = sum(eval_games[eval_games.wteam == team].wfgm) + sum(eval_games[eval_games.lteam == team].lfgm)
+        return float(fgm)/float(fga)
 
+    @staticmethod
+    def get_free_throw_percent(eval_games, team):
+        den = sum(eval_games[eval_games.wteam == team].wfta) + sum(eval_games[eval_games.lteam == team].lfta)
+        num = sum(eval_games[eval_games.wteam == team].wftm) + sum(eval_games[eval_games.lteam == team].lftm)
+        return float(num)/float(den)
 
-        # self.team = team
-        # self.pts_rank = pts_rank
-        # self.avg_pts_for = avg_pts_for
-        # self.avg_point_against = avg_point_against
-        # self.ft_perc = ft_perc
-        # self.fg_perc = fg_perc
-        # self.tp_perc = tp_perc
+    @staticmethod
+    def get_orpg(eval_games, team):
+        den = sum(eval_games.wteam == team) + sum(eval_games.lteam == team)
+        num = sum(eval_games[eval_games.wteam == team].wor) + sum(eval_games[eval_games.lteam == team].lor)
+        return float(num)/float(den)
+
+    @staticmethod
+    def get_drpg(eval_games, team):
+        den = sum(eval_games.wteam == team) + sum(eval_games.lteam == team)
+        num = sum(eval_games[eval_games.wteam == team].wdr) + sum(eval_games[eval_games.lteam == team].ldr)
+        return float(num)/float(den)
 
 class CreateWeightedPtsRanking:
     def __init__(self, games):
@@ -139,12 +182,15 @@ class CreateWeightedPtsRanking:
             self.success = False
 
 
-
-
-
-
 class NCAAGameTrainingInstance:
-    def __init__(self, team1_pgs, team2_pgs, outcome):
-        self.team1_pgs = team1_pgs
-        self.team2_pgs = team2_pgs
-        self.outcome = outcome
+    def __init__(self, w_team_pts_rank, l_team_pts_rank, w_fgp, l_fgp, w_ftp, l_ftp, w_orpg, l_orpg, w_drpg, l_drpg):
+        self.w_team_pts_rank = w_team_pts_rank
+        self.l_team_pts_rank = l_team_pts_rank
+        self.w_fgp = w_fgp
+        self.l_fgp = l_fgp
+        self.w_ftp = w_ftp
+        self.l_ftp = l_ftp
+        self.w_orpg = w_orpg
+        self.l_orpg = l_orpg
+        self.w_drpg = w_drpg
+        self.l_drpg = l_drpg
