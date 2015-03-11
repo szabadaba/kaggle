@@ -48,14 +48,69 @@ class CreateNCAATrainingSet:
                                         te.w_fgp/te.l_fgp,
                                         te.w_ftp/te.l_ftp,
                                         te.w_orpg/te.l_orpg,
-                                        te.w_drpg/te.l_drpg])
+                                        te.w_drpg/te.l_drpg,
+                                        te.w_topg/te.l_topg,
+                                        te.w_3pp/te.l_3pp,
+                                        te.w_home])
+            # self.formatted_data.append([te.w_team_pts_rank,
+            #                             te.w_fgp,
+            #                             te.w_ftp,
+            #                             te.w_orpg,
+            #                             te.w_drpg,
+            #                             te.w_topg,
+            #                             te.w_3pp])
             self.truth_label.append(1)
             self.formatted_data.append([te.l_team_pts_rank/te.w_team_pts_rank,
                                         te.l_fgp/te.w_fgp,
                                         te.l_ftp/te.w_ftp,
                                         te.l_orpg/te.w_orpg,
-                                        te.l_drpg/te.w_drpg])
+                                        te.l_drpg/te.w_drpg,
+                                        te.l_topg/te.w_topg,
+                                        te.l_3pp/te.w_3pp,
+                                        te.l_home])
+            # self.formatted_data.append([te.l_team_pts_rank,
+            #                             te.l_fgp,
+            #                             te.l_ftp,
+            #                             te.l_orpg,
+            #                             te.l_drpg,
+            #                             te.l_topg,
+            #                             te.l_3pp])
             self.truth_label.append(0)
+
+class CreateTestSet:
+    def __init__(self, season, team1, team2):
+        # get season data
+        data = ps.io.parsers.read_csv(season_detail_filename)
+        season_data = data[data.season == season]
+
+        #use pts ranking
+        pts_rank = CreateWeightedPtsRanking(season_data)
+
+        # set pts rank
+        team1_pts_rank = pts_rank.team_rank[pts_rank.teams.index(team1)]
+        team2_pts_rank = pts_rank.team_rank[pts_rank.teams.index(team2)]
+
+        team1_wgames = season_data[season_data.wteam == team1]
+        team1_lgames = season_data[season_data.lteam == team1]
+        team2_wgames = season_data[season_data.wteam == team2]
+        team2_lgames = season_data[season_data.lteam == team2]
+
+        # create training instance
+        self.training_set = NCAAGameTrainingInstance(team1_pts_rank,
+                                                 team2_pts_rank,
+                                                 CreatePreGameStats.get_field_goal_percent(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_field_goal_percent(team2_wgames,team2_lgames),
+                                                 CreatePreGameStats.get_free_throw_percent(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_free_throw_percent(team2_wgames, team2_lgames),
+                                                 CreatePreGameStats.get_orpg(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_orpg(team2_wgames, team2_lgames),
+                                                 CreatePreGameStats.get_drpg(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_drpg(team2_wgames, team2_lgames),
+                                                 CreatePreGameStats.get_topg(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_topg(team2_wgames, team2_lgames),
+                                                 CreatePreGameStats.get_3p_percent(team1_wgames, team1_lgames),
+                                                 CreatePreGameStats.get_3p_percent(team2_wgames, team2_lgames))
+
 
 
 
@@ -91,42 +146,64 @@ class CreatePreGameStats:
                     w_team_rank = pts_rank.team_rank[pts_rank.teams.index(game.wteam)]
                     l_team_rank = pts_rank.team_rank[pts_rank.teams.index(game.lteam)]
 
+                    w_team_wgames = eval_games[eval_games.wteam == game.wteam]
+                    w_team_lgames = eval_games[eval_games.lteam == game.wteam]
+                    l_team_wgames = eval_games[eval_games.wteam == game.lteam]
+                    l_team_lgames = eval_games[eval_games.lteam == game.lteam]
+
                     # create training instance
                     training_set.append(NCAAGameTrainingInstance(w_team_rank,
                                                                  l_team_rank,
-                                                                 CreatePreGameStats.get_field_goal_percent(eval_games, game.wteam),
-                                                                 CreatePreGameStats.get_field_goal_percent(eval_games, game.lteam),
-                                                                 CreatePreGameStats.get_free_throw_percent(eval_games, game.wteam),
-                                                                 CreatePreGameStats.get_free_throw_percent(eval_games, game.lteam),
-                                                                 CreatePreGameStats.get_orpg(eval_games, game.wteam),
-                                                                 CreatePreGameStats.get_orpg(eval_games, game.lteam),
-                                                                 CreatePreGameStats.get_drpg(eval_games, game.wteam),
-                                                                 CreatePreGameStats.get_drpg(eval_games, game.lteam)))
+                                                                 CreatePreGameStats.get_field_goal_percent(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_field_goal_percent(l_team_wgames,l_team_lgames),
+                                                                 CreatePreGameStats.get_free_throw_percent(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_free_throw_percent(l_team_wgames, l_team_lgames),
+                                                                 CreatePreGameStats.get_orpg(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_orpg(l_team_wgames, l_team_lgames),
+                                                                 CreatePreGameStats.get_drpg(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_drpg(l_team_wgames, l_team_lgames),
+                                                                 CreatePreGameStats.get_topg(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_topg(l_team_wgames, l_team_lgames),
+                                                                 CreatePreGameStats.get_3p_percent(w_team_wgames, w_team_lgames),
+                                                                 CreatePreGameStats.get_3p_percent(l_team_wgames, l_team_lgames),
+                                                                 game.wloc == 'H',
+                                                                 game.wloc == 'A'))
 
                     # print len(training_set)
 
     @staticmethod
-    def get_field_goal_percent(eval_games, team):
-        fga = sum(eval_games[eval_games.wteam == team].wfga) + sum(eval_games[eval_games.lteam == team].lfga)
-        fgm = sum(eval_games[eval_games.wteam == team].wfgm) + sum(eval_games[eval_games.lteam == team].lfgm)
+    def get_field_goal_percent(w_games, l_games):
+        fga = sum(w_games.wfga) + sum(l_games.lfga)
+        fgm = sum(w_games.wfgm) + sum(l_games.lfgm)
         return float(fgm)/float(fga)
-
     @staticmethod
-    def get_free_throw_percent(eval_games, team):
-        den = sum(eval_games[eval_games.wteam == team].wfta) + sum(eval_games[eval_games.lteam == team].lfta)
-        num = sum(eval_games[eval_games.wteam == team].wftm) + sum(eval_games[eval_games.lteam == team].lftm)
+    def get_3p_percent(w_games, l_games):
+        den = sum(w_games.wfga3) + sum(l_games.lfga3)
+        num = sum(w_games.wfgm3) + sum(l_games.lfgm3)
         return float(num)/float(den)
 
     @staticmethod
-    def get_orpg(eval_games, team):
-        den = sum(eval_games.wteam == team) + sum(eval_games.lteam == team)
-        num = sum(eval_games[eval_games.wteam == team].wor) + sum(eval_games[eval_games.lteam == team].lor)
+    def get_free_throw_percent(w_games, l_games):
+        den = sum(w_games.wfta) + sum(l_games.lfta)
+        num = sum(w_games.wftm) + sum(l_games.lftm)
         return float(num)/float(den)
 
     @staticmethod
-    def get_drpg(eval_games, team):
-        den = sum(eval_games.wteam == team) + sum(eval_games.lteam == team)
-        num = sum(eval_games[eval_games.wteam == team].wdr) + sum(eval_games[eval_games.lteam == team].ldr)
+    def get_orpg(w_games, l_games):
+        den = len(w_games.wteam) + len(l_games.lteam)
+        num = sum(w_games.wor) + sum(l_games.lor)
+        return float(num)/float(den)
+
+    @staticmethod
+    def get_drpg(w_games, l_games):
+        den = len(w_games.wteam) + len(l_games.lteam)
+        num = sum(w_games.wdr) + sum(l_games.ldr)
+        return float(num)/float(den)
+
+    @staticmethod
+    def get_topg(w_games, l_games):
+        den = len(w_games.wteam) + len(l_games.lteam)
+        num = sum(w_games.wto) + sum(l_games.lto)
         return float(num)/float(den)
 
 class CreateWeightedPtsRanking:
@@ -155,8 +232,8 @@ class CreateWeightedPtsRanking:
             l_idx = teams.index(game.lteam)
 
             # create dampen factor
-            dampen_factor = sqrt((1.0/(max_daynum - game.daynum + 1)))
-            # dampen_factor = 1
+            # dampen_factor = sqrt((1.0/(max_daynum - game.daynum + 1)))
+            dampen_factor = 1
 
             # add game to count
             numb_games[w_idx] += 1*dampen_factor
@@ -183,7 +260,7 @@ class CreateWeightedPtsRanking:
 
 
 class NCAAGameTrainingInstance:
-    def __init__(self, w_team_pts_rank, l_team_pts_rank, w_fgp, l_fgp, w_ftp, l_ftp, w_orpg, l_orpg, w_drpg, l_drpg):
+    def __init__(self, w_team_pts_rank, l_team_pts_rank, w_fgp, l_fgp, w_ftp, l_ftp, w_orpg, l_orpg, w_drpg, l_drpg, w_topg, l_topg, w_3pp, l_3pp, w_home, l_home):
         self.w_team_pts_rank = w_team_pts_rank
         self.l_team_pts_rank = l_team_pts_rank
         self.w_fgp = w_fgp
@@ -194,3 +271,9 @@ class NCAAGameTrainingInstance:
         self.l_orpg = l_orpg
         self.w_drpg = w_drpg
         self.l_drpg = l_drpg
+        self.w_topg = w_topg
+        self.l_topg = l_topg
+        self.w_3pp = w_3pp
+        self.l_3pp = l_3pp
+        self.w_home = w_home
+        self.l_home = l_home
