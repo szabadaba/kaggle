@@ -77,6 +77,13 @@ class CreateNCAATrainingSet:
             #                             te.l_3pp])
             self.truth_label.append(0)
 
+
+class SeasonGames:
+    def __init__(self, season):
+        data = ps.io.parsers.read_csv(season_detail_filename)
+        self.season_games = data[data.season == season]
+
+
 class CreateTestSet:
     def __init__(self, season, team1, team2):
         # get season data
@@ -110,7 +117,6 @@ class CreateTestSet:
                                                  CreatePreGameStats.get_topg(team2_wgames, team2_lgames),
                                                  CreatePreGameStats.get_3p_percent(team1_wgames, team1_lgames),
                                                  CreatePreGameStats.get_3p_percent(team2_wgames, team2_lgames))
-
 
 
 
@@ -235,15 +241,21 @@ class CreateWeightedPtsRanking:
             # dampen_factor = sqrt((1.0/(max_daynum - game.daynum + 1)))
             dampen_factor = 1
 
+            if row[1].wloc == 'H':
+                dampen_factor = 0.75
+            elif row[1].wloc == 'A':
+                dampen_factor = 1.25
+
+
             # add game to count
             numb_games[w_idx] += 1*dampen_factor
             numb_games[l_idx] += 1*dampen_factor
 
             # add points to mtx
-            point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)/(float(row[1].wscore + row[1].lscore))
-            point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)/float((row[1].wscore + row[1].lscore))
-            # point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)
-            # point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)
+            # point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)/(float(row[1].wscore + row[1].lscore))
+            # point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)/float((row[1].wscore + row[1].lscore))
+            point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)
+            point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)
 
         # scale points matrix
         d = np.diag(1.0/numb_games)
