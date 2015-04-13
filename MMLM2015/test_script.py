@@ -26,10 +26,10 @@ import analyze_cbb_season as an
 x = ncp.PredictNCAASeason()
 x.CreatePredictionCSV()
 
-t = ncp.ScoreSub('test_submission4.csv')
-
-print t.ll
-print 'done'
+# t = ncp.ScoreSub('test_submission6.csv')
+#
+# print t.ll
+# print 'done'
 
 # clf = svm.SVC()
 # clf.fit(X, y)

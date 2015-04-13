@@ -4,13 +4,15 @@ import create_ncaa_training_set as cn
 import numpy as np
 from math import log10, log
 
-tourn_seeds_csv = 'data/tourney_seeds.csv'
+tourn_seeds_csv = 'data/tourney_seeds_2015.csv'
+# tourn_seeds_csv = 'data/tourney_seeds.csv'
 
 class PredictNCAASeason:
     def __init__(self):
         t_teams = ps.io.parsers.read_csv(tourn_seeds_csv)
 
-        seasons = [2011, 2012, 2013, 2014]
+        # seasons = [2011, 2012, 2013, 2014]
+        seasons = [2015]
         self.p_mtx = []
         self.teams = []
         self.seasons = seasons
@@ -39,7 +41,7 @@ class PredictNCAASeason:
     def CreatePredictionCSV(self):
         csv_strings = []
 
-        f = open('test_submission4.csv', 'w')
+        f = open('test_submission6.csv', 'w')
         f.write('id,pred\n')
 
         for s, mtx in enumerate(self.p_mtx):

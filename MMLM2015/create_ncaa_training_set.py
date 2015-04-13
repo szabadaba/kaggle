@@ -8,7 +8,8 @@ from math import sqrt
 import sys
 
 
-season_detail_filename = 'data/regular_season_detailed_results.csv'
+season_detail_filename = 'data/regular_season_detailed_results_2015.csv'
+# season_detail_filename = 'data/regular_season_detailed_results.csv'
 
 class CreateNCAATrainingSet:
     def __init__(self):
@@ -238,13 +239,13 @@ class CreateWeightedPtsRanking:
             l_idx = teams.index(game.lteam)
 
             # create dampen factor
-            # dampen_factor = sqrt((1.0/(max_daynum - game.daynum + 1)))
-            dampen_factor = 1
+            dampen_factor = sqrt((1.0/(max_daynum - game.daynum + 1)))
+            # dampen_factor = 1
 
-            if row[1].wloc == 'H':
-                dampen_factor = 0.75
-            elif row[1].wloc == 'A':
-                dampen_factor = 1.25
+            # if row[1].wloc == 'H':
+            #     dampen_factor = 0.75
+            # elif row[1].wloc == 'A':
+            #     dampen_factor = 1.25
 
 
             # add game to count
@@ -252,10 +253,10 @@ class CreateWeightedPtsRanking:
             numb_games[l_idx] += 1*dampen_factor
 
             # add points to mtx
-            # point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)/(float(row[1].wscore + row[1].lscore))
-            # point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)/float((row[1].wscore + row[1].lscore))
-            point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)
-            point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)
+            point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)/(float(row[1].wscore + row[1].lscore))
+            point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)/float((row[1].wscore + row[1].lscore))
+            # point_mtx[w_idx, l_idx] += dampen_factor*float(row[1].wscore)
+            # point_mtx[l_idx, w_idx] += dampen_factor*float(row[1].lscore)
 
         # scale points matrix
         d = np.diag(1.0/numb_games)
